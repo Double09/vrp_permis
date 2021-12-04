@@ -4,117 +4,34 @@ Proxy.addInterface("vrp_permis",vRPCpermis)
 vRPSpermis = Tunnel.getInterface("vrp_permis","vrp_permis")
 vRP = Proxy.getInterface("vRP")
 
+CreateThread = Citizen.CreateThread
+IsPress = IsControlJustPressed
+
 local errs = {actual = 0,max = 3}
 local intest = false
 local secondPart = false
 local kmh = 3.6
-onTestEvent = 0
+local onTestEvent = 0
 local speed = kmh
 local speed_limit_resi = 50.0
 local speed_limit_town = 80.0
 local speed_limit_freeway = 120
-maxErrors = 4
-Error = 0
+local maxErrors = 4
+local Error = 0
+local coordonate = {x=219.078125,y=-1391.2143554688,z=30.587493896484}
 
-Citizen.CreateThread(function()
+CreateThread(function()
     local limitaViteza = CreateRuntimeTxd("limitaViteza")
     CreateRuntimeTextureFromImage(limitaViteza, "limitaViteza", "assets/limitaViteza.png")
     local limitaViteza1 = CreateRuntimeTxd("limitaViteza1")
     CreateRuntimeTextureFromImage(limitaViteza1, "limitaViteza1", "assets/limitaViteza1.png")
 end)
 
-function EndDTest()
-    local ped = GetPlayerPed(-1)
-    local vehicle = GetVehiclePedIsIn( ped, false )
-    if Error >= maxErrors then
-        drawNotification("Ai picat\nAi acumulat: ~r~".. Error.." ~w~greseli")
-        vRPSpermis.picat({})
-        vRPSpermis.scoatevworld({})
-        DeleteEntity(vehicle)
-        DeleteVehicle(vehicle)
-        EndTestTasks()
-        intest = false
-    else
-        drawNotification("Ai trecut\nAi acumulat: ~g~".. Error.." ~w~greseli")	
-        vRPSpermis.trecut({})
-        vRPSpermis.scoatevworld({})
-        vRPSpermis.finishPermis({})
-        DeleteEntity(vehicle)
-        DeleteVehicle(vehicle)
-        EndTestTasks()
-        intest = false
-    end
-end
-
-function EndTestTasks()
-    onTestBlipp = nil
-    onTestEvent = 0
-    DamageControl = 0
-    Error = 0
-    TaskLeaveVehicle(GetPlayerPed(-1), veh, 0)
-    Wait(1000)
-    DeleteEntity(licenseNpc)
-    CarTargetForLock = GetPlayersLastVehicle(GetPlayerPed(-1))
-    lockStatus = GetVehicleDoorLockStatus(CarTargetForLock)
-    SetVehicleDoorsLocked(CarTargetForLock, 2)
-    SetVehicleDoorsLockedForPlayer(CarTargetForLock, PlayerId(), false)
-    SetEntityAsMissionEntity(CarTargetForLock, true, true)
-    Wait(2000)
-    Citizen.InvokeNative( 0xEA386986E786A54F, Citizen.PointerValueIntInitialized( CarTargetForLock ) )
-end
-
-local function DrawText3D(x,y,z, text, scl) 
-    local onScreen,_x,_y=World3dToScreen2d(x,y,z)
-    local px,py,pz=table.unpack(GetGameplayCamCoords())
-    local dist = GetDistanceBetweenCoords(px,py,pz, x,y,z, 1)
-  
-    local scale = (1/dist)*scl
-    local fov = (1/GetGameplayCamFov())*100
-    local scale = scale*fov
-   
-    if onScreen then
-        SetTextScale(0.0*scale, 1.1*scale)
-        SetTextFont(4)
-        SetTextProportional(1)
-        SetTextColour(255, 255, 255, 255)
-        SetTextDropshadow(0, 0, 0, 0, 255)
-        SetTextEdge(2, 0, 0, 0, 150)
-        SetTextDropShadow()
-        SetTextOutline()
-        SetTextEntry("STRING")
-        SetTextCentre(1)
-        AddTextComponentString(text)
-        DrawText(_x,_y)
-    end
-end
-
-function vRPCpermis.playerSpawned(permisel)
+vRPCpermis.playerSpawned = function(permisel)
     arepermis = permisel
 end
 
-local function Draw3DText(x,y,z, text,font,scl)
-    local onScreen,_x,_y=World3dToScreen2d(x,y,z)
-    local scale = scl or 0.5
-    if onScreen then
-        SetTextScale(scale, scale)
-        SetTextFont(font)
-        SetTextProportional(1)
-        SetTextColour(255, 255, 255, 255)
-        SetTextDropshadow(0, 0, 0, 0, 55)
-        SetTextEdge(2, 0, 0, 0, 150)
-        SetTextDropShadow()
-        SetTextOutline()
-        SetTextEntry("STRING")
-        SetTextCentre(1)
-        AddTextComponentString(text)
-        DrawText(_x,_y)
-    end
-end
-
-local coordonate = {x=215.31427001953,y=-1398.8228759766,z=30.583543777466}
-InArea = false
-
-Citizen.CreateThread(function()
+CreateThread(function()
 	local blip = AddBlipForCoord(215.57330322266,-1398.6334228516,30.583526611328)
 	SetBlipSprite(blip,523)
 	SetBlipDisplay(blip, 4)
@@ -131,41 +48,27 @@ Citizen.CreateThread(function()
         local coords = GetEntityCoords(ped)
         if #(vector3(coords.x,coords.y,coords.z) - vector3(coordonate.x,coordonate.y,coordonate.z)) <= 5 then
             ticks = 1
-            InArea = true
-            DrawMarker(1, coordonate.x, coordonate.y, coordonate.z-1.00, 0, 0, 0, 0, 0, 0, 0.6901,0.6901,0.2301, 36, 113, 38, 200, 0, 0, 0, 1, 0, 0, 0)
-            msg("APASA ~g~E ~w~PENTRU A ~r~INCEPE",4,0.45,0.89,0.50,255,255,255,255)
-            Draw3DText(coordonate.x, coordonate.y, coordonate.z, 'Scoala de soferi',0,0.4) 
-            if IsControlJustPressed(0, 38) then
-                if not arepermis then 
-                    vRPSpermis.vworld({})
-                    cameraTransition(171.94692993164, -1011.8137207031, 29.333057403564)
-                else
-                    SetNotificationTextEntry("STRING")
-                    AddTextComponentString("~r~Ai deja permis !")
-                    DrawNotification(true, false)
+            DrawMarker(36, coordonate.x, coordonate.y, coordonate.z, 0, 0, 0, 0, 0, 0, 0.301, 0.301, 0.3001, 37, 133, 76, 255, 0, 0, 0, 1)
+            if #(vector3(coords.x,coords.y,coords.z) - vector3(coordonate.x,coordonate.y,coordonate.z)) <= 1 then
+                drawText("Apasa ~g~E ~w~pentru a da de ~f~permisul auto", 0.5, 0.95, 0.4, 255, 255, 255)
+                if IsPress(0, 38) then
+                    if not arepermis then 
+                        vRPSpermis.vworld({"DMV"})
+                        cameraTransition(171.94692993164, -1011.8137207031, 29.333057403564)
+                    else
+                        vRP.notify({"Ai deja permis de conducere"})
+                    end
                 end
             end
         else
             ticks = 1000
-            InArea = false
         end
     end
 end)
 
-function msg(text,font,x,y,scale,r,g,b,a)
-	SetTextFont(font)
-	SetTextScale(scale,scale)
-	SetTextColour(r,g,b,a)
-	SetTextOutline()
-	SetTextCentre(1)
-	SetTextEntry("STRING")
-	AddTextComponentString(text)
-	DrawText(x,y)
-end
 
-
-function Masina(x,y,z,heading) 
-	local hash = GetHashKey("emperor2")
+Masina = function(x,y,z,heading) 
+	local hash = GetHashKey("emperor2") -- Modificati voi cu ce masina doriti
     local n = 0
     while not HasModelLoaded(hash) and n < 500 do
         RequestModel(hash)
@@ -183,7 +86,7 @@ function Masina(x,y,z,heading)
     end    
 end
 
-function cameraTransition(x,y,z)
+cameraTransition = function(x,y,z)
     NetworkOverrideClockTime(09, 0, 0)
     local a4 = GetRenderingCam()
     local ped = GetPlayerPed(-1)
@@ -199,7 +102,7 @@ function cameraTransition(x,y,z)
     local a7 = CreateCameraWithParams("DEFAULT_SCRIPTED_CAMERA", 218.7297, -1370.44, 32.96997, 0.0, 0.0, 0.0, 65.0, 0, 2)
     PointCamAtCoord(a7, x,y,z)
     SetCamActiveWithInterp(a7, a6, 10000, 5, 5)
-    vehShow = CreateVehicle("t20", 216.56478881836,-1360.2951660156,30.58749961853, 229.14, false, false)
+    vehShow = CreateVehicle("emperor2", 216.56478881836,-1360.2951660156,30.58749961853, 229.14, false, false)
     vRPCpermis.sendNotification("CHAR_MP_MEX_DOCKS",false,1,"Introducere","","Acesta este vehiculul dvs. în care veti fi ~b~examinat~w~.",6)
     Wait(10000)
     DestroyCam(a6, 0)
@@ -211,23 +114,10 @@ function cameraTransition(x,y,z)
     ClearFocus()
     FreezeEntityPosition(ped, false)
     vRPCpermis.sendNotification("CHAR_MP_MEX_DOCKS",false,1,"Introducere","","Va rugam sa asteptati ~b~examinatorul~w~.",6)
-    samafutineldenpc()
+    sendnpc()
 end 
 
-function drawNotification(text)
-	SetNotificationTextEntry("STRING")
-	AddTextComponentString(text)
-	DrawNotification(false, false)
-end
-
-function DrawMissionText2(m_text, showtime)
-    ClearPrints()
-	SetTextEntry_2("STRING")
-	AddTextComponentString(m_text)
-	DrawSubtitleTimed(showtime, 1)
-end
-
-function samafutineldenpc()
+sendnpc = function()
     local model = 0x5E3DA4A4
     local ped = GetPlayerPed(-1)
     RequestModel(model)
@@ -249,7 +139,7 @@ function samafutineldenpc()
     Wait(5000)
     ClearPedTasksImmediately(licenseNpc)
     TaskEnterVehicle(licenseNpc,veh,10.0,0,5.0,0,0)
-    vRPCpermis.sendNotification("CHAR_MP_MEX_DOCKS",false,1,"Instructor","","Salut, ma numesc Double si voi fii instructorul tau astazi.",6)
+    vRPCpermis.sendNotification("CHAR_MP_MEX_DOCKS",false,1,"Instructor","","Salut, ma numesc double si voi fii instructorul tau astazi.",6)
     vRPCpermis.sendNotification("CHAR_MP_MEX_DOCKS",false,1,"Instructor","","Cand esti pregatit, te rog sa urmezi traseul.",6)
     Wait(5000)
     SetVehicleEngineOn(veh, true, true, false)
@@ -265,7 +155,7 @@ function samafutineldenpc()
     SetBlipRouteColour(onTestBlipp,38)
 end
 
-Citizen.CreateThread(function()
+CreateThread(function()
     local ticks = 100
     while true do
         Citizen.Wait(ticks)
@@ -283,7 +173,7 @@ Citizen.CreateThread(function()
 	end
 end)
 
-Citizen.CreateThread(function()
+CreateThread(function()
     local ticks = 1000
     while true do
         Citizen.Wait(ticks)
@@ -292,7 +182,7 @@ Citizen.CreateThread(function()
 		if HasEntityCollidedWithAnything(veh) and DamageControl == 1 then			
 			Citizen.Wait(1000)
 			Error = Error + 1	
-		elseif(IsControlJustReleased(1, 23)) and DamageControl == 1 then
+		elseif(IsPress(0, 23)) and DamageControl == 1 then
             vRPCpermis.sendNotification("CHAR_MP_MEX_DOCKS",false,1,"Instructor","","Nu puteti parasi vehiculul in timpul testului.",6)
     	end
 
@@ -319,9 +209,8 @@ Citizen.CreateThread(function()
                 onTestEvent = 2
                 Citizen.Wait(4000)
             end
-        end	
         
-        if onTestEvent == 2 then
+        elseif onTestEvent == 2 then
             if GetDistanceBetweenCoords(GetEntityCoords(ped),178.55052185059,-1401.7551269531,27.725154876709, true) > 4.0001 then
                 ticks = 1
                DrawMarker(1,178.55052185059,-1401.7551269531,27.725154876709,0, 0, 0, 0, 0, 0, 1.5, 1.5, 1.5, 178, 236, 93, 155, 0, 0, 2, 0, 0, 0, 0)
@@ -337,9 +226,8 @@ Citizen.CreateThread(function()
                 vRPCpermis.sendNotification("CHAR_MP_MEX_DOCKS",false,1,"Instructor","","Urmareste semafoarele din trafic.",6)
                 onTestEvent = 3
             end
-        end	
     
-        if onTestEvent == 3 then
+        elseif onTestEvent == 3 then
             if GetDistanceBetweenCoords(GetEntityCoords(ped),113.16044616699,-1365.2762451172,27.725179672241, true) > 4.0001 then
                 ticks = 1
                DrawMarker(1,113.16044616699,-1365.2762451172,27.725179672241,0, 0, 0, 0, 0, 0, 1.5, 1.5, 1.5, 178, 236, 93, 155, 0, 0, 2, 0, 0, 0, 0)
@@ -353,11 +241,9 @@ Citizen.CreateThread(function()
                 SetBlipSprite(onTestBlipp, 523)
                 SetBlipRouteColour(onTestBlipp,38)
                 onTestEvent = 4
-            end
-        end		
-            
+            end        
         
-        if onTestEvent == 4 then
+        elseif onTestEvent == 4 then
             if GetDistanceBetweenCoords(GetEntityCoords(ped),-73.542953491211,-1364.3355712891,27.789325714111, true) > 4.0001 then
                 ticks = 1
                DrawMarker(1,-73.542953491211,-1364.3355712891,27.789325714111,0, 0, 0, 0, 0, 0, 1.5, 1.5, 1.5, 178, 236, 93, 155, 0, 0, 2, 0, 0, 0, 0)
@@ -372,10 +258,9 @@ Citizen.CreateThread(function()
                 SetBlipRouteColour(onTestBlipp,38)
                 vRPCpermis.sendNotification("CHAR_MP_MEX_DOCKS",false,1,"Instructor","","Asigurate ca te opresti pentru a trece masinile.",6)
                 onTestEvent = 5
-            end
-        end			
+            end			
         
-        if onTestEvent == 5 then
+        elseif onTestEvent == 5 then
             if GetDistanceBetweenCoords(GetEntityCoords(ped),-355.14373779297,-1420.2822265625,27.868143081665, true) > 4.0001 then
                 ticks = 1
                DrawMarker(1,-355.14373779297,-1420.2822265625,27.868143081665,0, 0, 0, 0, 0, 0, 1.5, 1.5, 1.5, 178, 236, 93, 155, 0, 0, 2, 0, 0, 0, 0)
@@ -389,10 +274,9 @@ Citizen.CreateThread(function()
                 SetBlipSprite(onTestBlipp, 523)
                 SetBlipRouteColour(onTestBlipp,38)
                 onTestEvent = 6
-            end
-        end			
+            end			
         
-        if onTestEvent == 6 then
+        elseif onTestEvent == 6 then
             if GetDistanceBetweenCoords(GetEntityCoords(ped),-439.14846801758,-1417.1004638672,27.704095840454, true) > 4.0001 then
                 ticks = 1
                DrawMarker(1,-439.14846801758,-1417.1004638672,27.704095840454,0, 0, 0, 0, 0, 0, 1.5, 1.5, 1.5, 178, 236, 93, 155, 0, 0, 2, 0, 0, 0, 0)
@@ -406,10 +290,9 @@ Citizen.CreateThread(function()
                 SetBlipSprite(onTestBlipp, 523)
                 SetBlipRouteColour(onTestBlipp,38)
                 onTestEvent = 7
-            end
-        end		
+            end	
     
-        if onTestEvent == 7 then
+        elseif onTestEvent == 7 then
             if GetDistanceBetweenCoords(GetEntityCoords(ped),-453.79092407227,-1444.7265625,27.665870666504, true) > 4.0001 then
                 ticks = 1
                DrawMarker(1,-453.79092407227,-1444.7265625,27.665870666504,0, 0, 0, 0, 0, 0, 1.5, 1.5, 1.5, 178, 236, 93, 155, 0, 0, 2, 0, 0, 0, 0)
@@ -428,10 +311,9 @@ Citizen.CreateThread(function()
                 onTestEvent = 8
                 SpeedControl = 3
                 Citizen.Wait(4000)
-            end
-        end		
+            end		
     
-        if onTestEvent == 8 then
+        elseif onTestEvent == 8 then
             if GetDistanceBetweenCoords(GetEntityCoords(ped),-463.23712158203,-1592.1785888672,37.519771575928, true) > 4.0001 then
                 ticks = 1
                DrawMarker(1,-463.23712158203,-1592.1785888672,37.519771575928,0, 0, 0, 0, 0, 0, 1.5, 1.5, 1.5, 178, 236, 93, 155, 0, 0, 2, 0, 0, 0, 0)
@@ -446,9 +328,8 @@ Citizen.CreateThread(function()
                 SetBlipRouteColour(onTestBlipp,38)
                 onTestEvent = 9
             end
-        end
         
-        if onTestEvent == 9 then
+        elseif onTestEvent == 9 then
             if GetDistanceBetweenCoords(GetEntityCoords(ped),-900.64721679688,-1986.2814941406,26.109502792358, true) > 4.0001 then
                 ticks = 1
                DrawMarker(1,-900.64721679688,-1986.2814941406,26.109502792358,0, 0, 0, 0, 0, 0, 1.5, 1.5, 1.5, 178, 236, 93, 155, 0, 0, 2, 0, 0, 0, 0)
@@ -462,10 +343,9 @@ Citizen.CreateThread(function()
                 SetBlipSprite(onTestBlipp, 523)
                 SetBlipRouteColour(onTestBlipp,38)
                 onTestEvent = 10
-            end
-        end	
+            end	
         
-        if onTestEvent == 10 then
+        elseif onTestEvent == 10 then
             if GetDistanceBetweenCoords(GetEntityCoords(ped),1225.7598876953,-1948.7922363281,38.718940734863, true) > 4.0001 then
                 ticks = 1
                DrawMarker(1,1225.7598876953,-1948.7922363281,38.718940734863,0, 0, 0, 0, 0, 0, 1.5, 1.5, 1.5, 178, 236, 93, 155, 0, 0, 2, 0, 0, 0, 0)
@@ -480,9 +360,8 @@ Citizen.CreateThread(function()
                 SetBlipRouteColour(onTestBlipp,38)
                 onTestEvent = 11
             end
-        end	
         
-        if onTestEvent == 11 then
+        elseif onTestEvent == 11 then
             if GetDistanceBetweenCoords(GetEntityCoords(ped),1225.7598876953,-1948.7922363281,38.718940734863, true) > 4.0001 then
                 ticks = 1
                DrawMarker(1,1225.7598876953,-1948.7922363281,38.718940734863,0, 0, 0, 0, 0, 0, 1.5, 1.5, 1.5, 178, 236, 93, 155, 0, 0, 2, 0, 0, 0, 0)
@@ -499,10 +378,9 @@ Citizen.CreateThread(function()
                 intest = true
                 vRPCpermis.sendNotification("CHAR_MP_MEX_DOCKS",false,1,"Instructor","","Intram in oras, fii atent la viteza.",6)
                 onTestEvent = 12
-            end
-        end		
+            end	
         
-        if onTestEvent == 12 then
+        elseif onTestEvent == 12 then
             if GetDistanceBetweenCoords(GetEntityCoords(ped),1163.6030273438,-1841.7713623047,35.679168701172, true) > 4.0001 then
                 ticks = 1
                DrawMarker(1,1163.6030273438,-1841.7713623047,35.679168701172,0, 0, 0, 0, 0, 0, 1.5, 1.5, 1.5, 178, 236, 93, 155, 0, 0, 2, 0, 0, 0, 0)
@@ -520,9 +398,8 @@ Citizen.CreateThread(function()
                 SpeedControl = 2
                 onTestEvent = 13
             end
-        end		
     
-        if onTestEvent == 13 then
+        elseif onTestEvent == 13 then
             if GetDistanceBetweenCoords(GetEntityCoords(ped),235.28327941895,-1398.3292236328,28.921098709106, true) > 4.0001 then
                 ticks = 1
                DrawMarker(1,235.28327941895,-1398.3292236328,28.921098709106,0, 0, 0, 0, 0, 0, 1.5, 1.5, 1.5, 178, 236, 93, 155, 0, 0, 2, 0, 0, 0, 0)
@@ -530,39 +407,83 @@ Citizen.CreateThread(function()
                 if onTestBlipp ~= nil and DoesBlipExist(onTestBlipp) then
                     Citizen.InvokeNative(0x86A652570E5F25DD,Citizen.PointerValueIntInitialized(onTestBlipp))
                 end
-                EndDTest()
+                local ped = GetPlayerPed(-1)
+                local vehicle = GetVehiclePedIsIn( ped, false )
+                if Error >= maxErrors then
+                    vRP.notify({"Ai picat\nAi acumulat: ~r~".. Error.." ~w~greseli"})
+                    vRPSpermis.picat({})
+                    vRPSpermis.vworld({"Normal"})
+                    DeleteEntity(vehicle)
+                    DeleteVehicle(vehicle)
+                    EndTestTasks()
+                    intest = false
+                else
+                    vRP.notify({"Ai trecut\nAi acumulat: ~g~".. Error.." ~w~greseli"})	
+                    vRPSpermis.trecut({})
+                    vRPSpermis.vworld({"Normal"})
+                    vRPSpermis.vworld({"Trecut"})
+                    DeleteEntity(vehicle)
+                    DeleteVehicle(vehicle)
+                    EndTestTasks()
+                    intest = false
+                end
             end
         end		
     end
 end)
 
-Citizen.CreateThread(function()
-    local ticks = 1000
+EndTestTasks = function()
+    onTestBlipp = nil
+    onTestEvent = 0
+    DamageControl = 0
+    Error = 0
+    TaskLeaveVehicle(GetPlayerPed(-1), veh, 0)
+    Wait(1000)
+    DeleteEntity(licenseNpc)
+    CarTargetForLock = GetPlayersLastVehicle(GetPlayerPed(-1))
+    lockStatus = GetVehicleDoorLockStatus(CarTargetForLock)
+    SetVehicleDoorsLocked(CarTargetForLock, 2)
+    SetVehicleDoorsLockedForPlayer(CarTargetForLock, PlayerId(), false)
+    SetEntityAsMissionEntity(CarTargetForLock, true, true)
+    Wait(2000)
+    Citizen.InvokeNative( 0xEA386986E786A54F, Citizen.PointerValueIntInitialized( CarTargetForLock ) )
+end
+
+CreateThread(function()
     while true do 
-        Citizen.Wait(ticks)
+        Citizen.Wait(0)
         if intest then 
-            ticks = 1
             DrawSprite("limitaViteza","limitaViteza",0.90, 0.700,0.08,0.12,0.0,255,255,255,255)
         end
         if secondPart then 
             intest = false
-            ticks = 1
             DrawSprite("limitaViteza1","limitaViteza1",0.90, 0.700,0.08,0.12,0.0,255,255,255,255)
         end
     end
 end)
 
-function vRPCpermis.sendNotification(icon,flash,type,sender,senderTitle,text,notifColor)
+fontId = RegisterFontId('Freedom Font')
+drawText = function(text, x, y, scale, r, g, b, font)
+	if font then
+		SetTextFont(font)
+	else
+		SetTextFont(fontId)
+	end
+	if font ~= 4 then
+		SetTextCentre(1)
+	end
+	SetTextProportional(0)
+	SetTextScale(scale, scale)
+	SetTextDropShadow(30, 5, 5, 5, 255)
+	SetTextEntry("STRING")
+	SetTextColour(r, g, b, 255)
+	AddTextComponentString(text)
+	DrawText(x, y)
+end
+
+vRPCpermis.sendNotification = function(icon,flash,type,sender,senderTitle,text)
     SetNotificationTextEntry("STRING")
     AddTextComponentString(text)
     SetNotificationMessage(icon, icon, flash, type, sender, senderTitle, text)
     DrawNotification(false, true)
-end
-
-function drawSubtitleText(m_text, showtime)
-    ClearPrints()
-    SetTextEntry_2("STRING")
-    SetTextFont(fontId)
-    AddTextComponentString(m_text)
-    DrawSubtitleTimed(showtime, 1)
 end
