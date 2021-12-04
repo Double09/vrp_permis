@@ -9,33 +9,31 @@ Tunnel.bindInterface("vrp_permis",vRPSpermis)
 Proxy.addInterface("vrp_permis",vRPSpermis)
 vRPCpermis = Tunnel.getInterface("vrp_permis","vrp_permis")
 
-function vRPSpermis.vworld()
+function vRPSpermis.vworld(type)
     player = source
+    local user_id = vRP.getUserId({player})
     if player ~= nil then 
-        random = math.random(50,100)
-        SetPlayerRoutingBucket(player, random)
+        if type ~= nil then
+            if type == "DMV" then
+                random = math.random(50,100)
+                SetPlayerRoutingBucket(player, random)
+            elseif type == "Normal" then
+                    SetPlayerRoutingBucket(player, 0)
+            elseif type == "Trecut" then
+                vRPclient.notify(source,{"Ai primit permisul"})
+                exports.ghmattimysql:execute("UPDATE vrp_users SET permis = 1 WHERE id = @user_id",{["@user_id"] = user_id}, function(data)end)
+            end
+        end
     end
-end
-
-function vRPSpermis.scoatevworld()
-    player = source
-    if player ~= nil then 
-        SetPlayerRoutingBucket(player, 0)
-    end
-end 
-
-function vRPSpermis.finishPermis()
-    local user_id = vRP.getUserId({source})
-    vRPclient.notify(source,{"Ai primit permisul"})
-    exports.ghmattimysql:execute("UPDATE vrp_users SET permis = 1 WHERE id = @user_id",{["@user_id"] = user_id}, function(data)end)
 end
 
 AddEventHandler("vRP:playerSpawn",function(user_id, source, first_spawn)
-    exports.ghmattimysql:execute('SELECT * FROM `vrp_users` WHERE id = @user_id', {["@user_id"] = user_id}, function(permise)
-        if permise[1].permis == 1 then
+    if first_spawn then 
+        local rows = exports.ghmattimysql:executeSync('SELECT permis FROM `vrp_users` WHERE id = @user_id', {["@user_id"] = user_id})
+        if rows[1].permis == 1 then
             vRPCpermis.playerSpawned(source,{true})
         end
-	end)
+    end
 end)
 
 local cere_permis = {function(player,choice) 
@@ -46,13 +44,12 @@ local cere_permis = {function(player,choice)
             vRPclient.notify(player,{"Ceri ~g~licenta~w~..."})
             vRP.request({nplayer,"Vrei sa ii arati politstului licenta ?",15,function(nplayer,ok)
                 if ok then
-                    exports.ghmattimysql:execute('SELECT * FROM `vrp_users` WHERE id = @user_id', {["@user_id"] = nuser_id}, function(permise)
-                        if permise[1].permis == 1 then
-                            vRPclient.notify(player,{"PERMIS : ~g~DA"})
-                        else
-                            vRPclient.notify(player,{"PERMIS : ~r~NU"})
-                        end
-                    end)
+                    local rows = exports.ghmattimysql:executeSync('SELECT permis FROM `vrp_users` WHERE id = @user_id', {["@user_id"] = user_id})
+                    if rows[1].permis == 1 then
+                        vRPclient.notify(player,{"PERMIS : ~g~DA"})
+                    else
+                        vRPclient.notify(player,{"PERMIS : ~r~NU"})
+                    end
                 else
                     vRPclient.notify(player,{"A refuzat sa iti arate licenta"})
                 end
@@ -91,4 +88,4 @@ vRP.registerMenuBuilder({"police", function(add,data)
 	  end
 	  add(choices)
 	end
-  end})
+end})
